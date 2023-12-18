@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.screens.edit
 
+import android.content.Intent
 import android.media.ExifInterface
 import android.net.Uri
 import androidx.compose.foundation.layout.Column

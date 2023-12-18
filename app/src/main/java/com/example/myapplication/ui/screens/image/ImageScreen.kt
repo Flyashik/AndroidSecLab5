@@ -60,7 +60,8 @@ fun ImageScreen(
         Button(
             onClick = {
                 val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
-                intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    .addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 imageLauncher.launch(intent)
             },
             Modifier.padding(top = 10.dp)

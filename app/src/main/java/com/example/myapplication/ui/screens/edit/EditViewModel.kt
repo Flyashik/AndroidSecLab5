@@ -2,13 +2,22 @@ package com.example.myapplication.ui.screens.edit
 
 import android.app.Application
 import android.content.ContentResolver
+import android.content.Context
+import android.media.ExifInterface
 import android.net.Uri
-import androidx.exifinterface.media.ExifInterface
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.AndroidViewModel
+import com.example.myapplication.MAIN
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.io.File
+import java.io.IOException
 
 
 class EditViewModel(app: Application): AndroidViewModel(app) {
@@ -42,34 +51,37 @@ class EditViewModel(app: Application): AndroidViewModel(app) {
         _uiState.value = _uiState.value.copy(longitude = value)
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     fun save(contentResolver: ContentResolver) {
-        contentResolver.openFileDescriptor(uri, "rw", null)
-            ?.use { fileDescriptor ->
-                val exif = ExifInterface(fileDescriptor.fileDescriptor)
+        val imageFile = FileUtil.getPath(MAIN.applicationContext, this.uri)?.let { File(it) }
+        try {
+            imageFile?.let {
+                val exif = ExifInterface(imageFile)
 
-                if (_uiState.value.device != "") {
-                    val name = _uiState.value.device
-                    exif.setAttribute(ExifInterface.TAG_MAKE, name)
-                }
+                exif.setAttribute(ExifInterface.TAG_MAKE, _uiState.value.device)
+                exif.setAttribute(ExifInterface.TAG_MODEL, _uiState.value.model)
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, _uiState.value.latitude)
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, _uiState.value.longitude)
 
-                if (_uiState.value.model != "") {
-                    val model = _uiState.value.model
-                    exif.setAttribute(ExifInterface.TAG_MODEL, model)
-                }
-
-                if (_uiState.value.latitude != "") {
-                    val lat = _uiState.value.latitude
-                    exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, lat)
-                }
-
-                if (_uiState.value.longitude != "") {
-                    val long = _uiState.value.longitude
-                    exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, long)
-                }
                 exif.saveAttributes()
-
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("EditViewModel", "Error saving image: ${e.message}")
+        }
         _navigateToImageScreen.value = true
+    }
+}
+
+object FileUtil {
+    fun getPath(context: Context, uri: Uri): String? {
+        val projection = arrayOf(MediaStore.Images.Media.DATA)
+        val cursor = context.contentResolver.query(uri, projection, null, null, null)
+        val columnIndex = cursor?.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+        cursor?.moveToFirst()
+        val path = columnIndex?.let { cursor.getString(it) }
+        cursor?.close()
+        return path
     }
 }
 
